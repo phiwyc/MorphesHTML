@@ -22,6 +22,7 @@ div
     (class: word)
     'This is a word'
 div
+  (class: anotherDiv hello)
   img
     (class: picture image)
     (width: 100)
