@@ -1,0 +1,24 @@
+head
+  meta
+  title
+    (class: fei fjei woe)
+    (v-if: true)
+    'this is title'
+body
+  div
+    div
+    p
+      'asdfoijasdfoij'
+      div
+        p
+  div
+    div
+      div
+        ul
+          li
+            (class: list)
+          li
+          li
+          li
+  script
+    (ref: asdfm)
