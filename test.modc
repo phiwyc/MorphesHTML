@@ -1,24 +1,21 @@
 head
   meta
   title
-    (class: fei fjei woe)
-    (v-if: true)
     'this is title'
+  style
+    (href: index.css)
+    'body{color: red;}'
 body
   div
     div
     p
-      'asdfoijasdfoij'
-      div
-        p
+      (class: tag)
+      'This is a p <b>tag</b>'
+    img
+      (src: asdf.jpg)
   div
     div
-      div
-        ul
-          li
-            (class: list)
-          li
-          li
-          li
+      (class: div)
+      (diyAttr: 10)
   script
     (ref: asdfm)
