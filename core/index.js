@@ -1,6 +1,7 @@
 // MTML核心
 const fs = require('fs')
 const path = require('path')
+const process = require('process')
 // 引入JSDOM来方便地生成DOM树
 const jsdom = require('jsdom')
 const { JSDOM } = jsdom
@@ -11,7 +12,10 @@ let global = require('../share/share.js')
 function compiler (mtmlList) {
     // 根据文件列表进行解析
     mtmlList.forEach(mtml => {
-        console.log('Compiling...' + mtml)
+        // 控制台输出
+        process.stdout.write('Compiling...' + mtml)
+        process.stdout.clearLine()
+        process.stdout.cursorTo(0)
         let rootPath = path.resolve('./')
         let source = fs.readFileSync(mtml).toString()
         // 初始化
@@ -21,7 +25,7 @@ function compiler (mtmlList) {
         // 处理代码字符流
         for (let i = 0; i < source.length; i++) {
             global.sourceArr.push(source[i])
-            checkToken()
+            checkToken(i, source.length)
         }
         // HTML 转换处理
         transToHTML(global.mtmlTree, domTree)
@@ -39,15 +43,25 @@ function compiler (mtmlList) {
 }
 
 // 逐行读取token
-function checkToken () {
-    if(global.sourceArr.indexOf('\n') >= 0){
+function checkToken (k, srcLength) {
+    if (k == srcLength - 1) {
         for (let i = 0; i < global.sourceArr.length; i++) {
             global.tempToken.push(global.sourceArr[i])
-            if ( global.sourceArr[i] == '\n') {
+            if ( i == global.sourceArr.length - 1) {
                 setToken()
             }
         }
         global.sourceArr = []
+    } else {
+        if(global.sourceArr.indexOf('\n') >= 0){
+            for (let i = 0; i < global.sourceArr.length; i++) {
+                global.tempToken.push(global.sourceArr[i])
+                if ( global.sourceArr[i] == '\n') {
+                    setToken()
+                }
+            }
+            global.sourceArr = []
+        }
     }
 }
 
@@ -84,11 +98,20 @@ function setToken() {
     // dom类添加到列表中记录，用于JSDOM处理
     global.nodeId++
     if (weight == 0) {
-        global.mtmlTree[global.NODE + global.nodeCount] = {
-            id: global.nodeId,
-            name: pt,
-            type: 'dom',
-            weight
+        if (type == 'comment') {
+            newNode = {
+                id: global.nodeId,
+                type: 'comment',
+                comment: pt,
+                weight
+            }
+        } else {
+            global.mtmlTree[global.NODE + global.nodeCount] = {
+                id: global.nodeId,
+                name: pt,
+                type: 'dom',
+                weight
+            }
         }
     } else {
         // 根据权重树寻找父级
@@ -98,6 +121,13 @@ function setToken() {
                 id: global.nodeId,
                 type: 'string',
                 content: pt.replace(/\'/g, ''),
+                weight
+            }
+        } else if (type == 'comment') {
+            newNode = {
+                id: global.nodeId,
+                type: 'comment',
+                comment: pt,
                 weight
             }
         } else if (type == 'attr') {
@@ -164,6 +194,9 @@ function addNode(fatherNode, fatherNodeName, newNodeName, newNode, type) {
 function getType (token) {
     if (token[0] == '\'') {
         return 'string'
+    }
+    if (token[0] == '/' && token[1] == '/') {
+        return 'comment'
     }
     if (token[0] == '(') {
         if (token.indexOf(':') > 0) {

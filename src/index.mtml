@@ -1,21 +1,37 @@
+// 这是头部
 head
   meta
+    (charset: utf-8)
   title
+    // this is a comment
+    // another comment
     'this is title'
   style
-    (href: index.css)
-    'body{color: red;}'
+    (href: ./js/index.css)
+    'body{color: blue;}'
 body
   div
-    div
-    p
-      (class: tag)
-      'This is a p <b>tag</b>'
-    img
-      (src: asdf.jpg)
+    (class: f)
   div
+    'are you ready'
+  div
+  div
+  div
+    (class: div)
+    // comment
+    div
+    div
+      (class: tag)
+      'This is a p <b>tag</b><br>'
+      b
+        '加粗 变大！'
+  div
+    // comment
     div
       (class: div)
       (diyAttr: 10)
+  // 阿斯蒂芬
   script
-    (ref: asdfm)
+    (src: ./js/index.js)
+  script
+    'console.log("ff")'
