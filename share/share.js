@@ -4,6 +4,13 @@ module.exports = {
     NODE: 'node_',
     MORPHES_ID: 'morphes_id',
     SRC_PATH: './src',
+    TOKEN: {
+        STRING: 'string',
+        ATTR: 'attr',
+        DOM: 'dom',
+        COMMENT: 'comment',
+        SCRIPT: 'script'
+    },
     // CST，MTML的树结构
     mtmlTree: {},
     // 节点计数
@@ -17,5 +24,16 @@ module.exports = {
     // 待编译文件列表
     mtmlFileList: [],
     // 临时存储token
-    tempToken: []
+    tempToken: [],
+    // 脚本树
+    scriptTree: {
+        switch: false,
+        scriptStr: [],
+        left: 0,
+        right: 0
+    },
+    // 正则
+    SCRIPT_EXP: /\{[\S\s]+\}/,
+    // 编译状态
+    isCompiling: false
 }

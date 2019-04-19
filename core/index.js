@@ -13,9 +13,7 @@ function compiler (mtmlList) {
     // 根据文件列表进行解析
     mtmlList.forEach(mtml => {
         // 控制台输出
-        process.stdout.write('Compiling...' + mtml)
-        process.stdout.clearLine()
-        process.stdout.cursorTo(0)
+        console.log('Compiling...' + mtml)
         let rootPath = path.resolve('./')
         let source = fs.readFileSync(mtml).toString()
         // 初始化
@@ -30,8 +28,8 @@ function compiler (mtmlList) {
         // HTML 转换处理
         transToHTML(global.mtmlTree, domTree)
         let allDom = domTree.window.document.getElementsByTagName('*')
-        for (let i = 0; i < allDom.length; i++){
-            allDom[i].removeAttribute('morphes-id')
+        for (let i = 0; i < allDom.length; i++) {
+            allDom[i].removeAttribute(global.MORPHES_ID)
         }
         // 将文件导出至DIST目录
         let tempStrArr = mtml.split('')
@@ -39,26 +37,31 @@ function compiler (mtmlList) {
         mtml = tempStrArr.join('')
         fs.writeFileSync(mtml.replace(rootPath + '\\src', rootPath + '\\dist'), domTree.window.document.documentElement.outerHTML)
     })
-    console.log('Compile success.')
+    global.mtmlFileList = []
+    global.isCompiling = false
+    console.log('Compile success at time ' + new Date())
 }
 
 // 逐行读取token
 function checkToken (k, srcLength) {
+    // 文本最后一个字符的处理问题
     if (k == srcLength - 1) {
         for (let i = 0; i < global.sourceArr.length; i++) {
             global.tempToken.push(global.sourceArr[i])
             if ( i == global.sourceArr.length - 1) {
-                setToken()
+                setToken(false)
             }
         }
         global.sourceArr = []
     } else {
+        // 需要对内嵌JS代码和CSS代码进行处理
+        // 换行符是分界
         if(global.sourceArr.indexOf('\n') >= 0){
             for (let i = 0; i < global.sourceArr.length; i++) {
                 global.tempToken.push(global.sourceArr[i])
-                if ( global.sourceArr[i] == '\n') {
-                    setToken()
-                }
+                    if ( global.sourceArr[i] == '\n') {
+                        setToken(false)
+                    }
             }
             global.sourceArr = []
         }
@@ -67,10 +70,26 @@ function checkToken (k, srcLength) {
 
 // 构造词法树
 function setToken() {
-    let pt = global.tempToken.join('').replace('\n', '').replace('\r', '')
+    let pt
+    pt = global.tempToken.join('').replace('\n', '').replace('\r', '')
     let k = 0
     let type = ''
-    // 检查空格数量
+    let firstChar = getFirstNonSpaceChar(pt)
+    // 检查文段首字符
+    if (firstChar == '{') {
+        global.scriptTree.switch = true
+    }
+    if (pt.match(global.SCRIPT_EXP)) {
+        // 确保内嵌代码格式正确
+        // TODO: 异常处理
+        if (checkScriptBrackets(pt)) {
+            global.scriptTree.switch = false
+        }
+    }
+    if (global.scriptTree.switch) {
+        return
+    }
+    // console.log(pt)
     for (let i = 0; i < pt.length; i++) {
         if (pt[i] == ' ') {
             k++
@@ -98,10 +117,10 @@ function setToken() {
     // dom类添加到列表中记录，用于JSDOM处理
     global.nodeId++
     if (weight == 0) {
-        if (type == 'comment') {
+        if (type == global.TOKEN.COMMENT) {
             newNode = {
                 id: global.nodeId,
-                type: 'comment',
+                type: global.TOKEN.COMMENT,
                 comment: pt,
                 weight
             }
@@ -109,28 +128,28 @@ function setToken() {
             global.mtmlTree[global.NODE + global.nodeCount] = {
                 id: global.nodeId,
                 name: pt,
-                type: 'dom',
+                type: global.TOKEN.DOM,
                 weight
             }
         }
     } else {
         // 根据权重树寻找父级
         let newNode
-        if (type == 'string') {
+        if (type == global.TOKEN.STRING) {
             newNode = {
                 id: global.nodeId,
-                type: 'string',
+                type: global.TOKEN.STRING,
                 content: pt.replace(/\'/g, ''),
                 weight
             }
-        } else if (type == 'comment') {
+        } else if (type == global.TOKEN.COMMENT) {
             newNode = {
                 id: global.nodeId,
-                type: 'comment',
+                type: global.TOKEN.COMMENT,
                 comment: pt,
                 weight
             }
-        } else if (type == 'attr') {
+        } else if (type == global.TOKEN.ATTR) {
             let attrStr = pt.replace('(', '')
             attrStr = attrStr.replace(')', '')
             let splitPos = attrStr.indexOf(':')
@@ -143,14 +162,21 @@ function setToken() {
                 id: global.nodeId,
                 key: attrKey,
                 value: attrValue,
-                type: 'attr',
+                type: global.TOKEN.ATTR,
+                weight
+            }
+        } else if (type == global.TOKEN.SCRIPT) {
+            newNode = {
+                id: global.nodeId,
+                script: pt,
+                type: global.TOKEN.SCRIPT,
                 weight
             }
         } else {
             newNode = {
                 id: global.nodeId,
                 name: pt,
-                type: 'dom',
+                type: global.TOKEN.DOM,
                 weight
             }
         }
@@ -174,14 +200,6 @@ function addNode(fatherNode, fatherNodeName, newNodeName, newNode, type) {
         if (typeof (fatherNode[n]) == 'object') {
             if(n == fatherNodeName) {
                 fatherNode[n][newNodeName] = newNode
-                // switch(type){
-                //     case 'attr':
-                //         fatherNode[n][newNodeName] = newNode
-                //     break
-                //     default:
-                //         fatherNode[n][newNodeName] = newNode
-                //     break
-                // }
             }else{
                 addNode(fatherNode[n], fatherNodeName, newNodeName, newNode, type)
             }
@@ -193,16 +211,19 @@ function addNode(fatherNode, fatherNodeName, newNodeName, newNode, type) {
 // 在这里也会有类型检查
 function getType (token) {
     if (token[0] == '\'') {
-        return 'string'
+        return global.TOKEN.STRING
     }
     if (token[0] == '/' && token[1] == '/') {
-        return 'comment'
+        return global.TOKEN.COMMENT
     }
     if (token[0] == '(') {
         if (token.indexOf(':') > 0) {
-            return 'attr'
+            return global.TOKEN.ATTR
         }
         throw 'Attribute should be KV format'
+    }
+    if (token[0] == '{') {
+        return global.TOKEN.SCRIPT
     }
     if (token[0] == ')') {
         throw 'Attribute should start with "("'
@@ -215,42 +236,49 @@ function transToHTML (CST, domTree) {
         // 对象即节点
         if ( typeof (CST[n]) == 'object' ) {
             // DOM节点
-            if (CST[n].type == 'dom') {
+            if (CST[n].type == global.TOKEN.DOM) {
                 // 判断权重，父级元素按照遍历顺序直接写入
                 if (CST[n].weight == 0) {
                     // 根元素会由JSDOM自动生成，做简单处理即可
+                    // 根元素必须是head或body
                     if (CST[n].name == 'head') {
-                        domTree.window.document.head.setAttribute('morphes-id', CST[n].id)
+                        domTree.window.document.head.setAttribute(global.MORPHES_ID, CST[n].id)
                     } 
                     if (CST[n].name == 'body') {
-                        domTree.window.document.body.setAttribute('morphes-id', CST[n].id)
+                        domTree.window.document.body.setAttribute(global.MORPHES_ID, CST[n].id)
                     }
                 } else {
                     // 子元素写在父元素内部
                     // 通过遍历进行添加
-                    let newDom =  domTree.window.document.createElement(CST[n].name)
+                    // 映射DOM类型
+                    let newDom = domTree.window.document.createElement(CST[n].name)
+                    if (CST[n].name.indexOf('inline-') == 0) {
+                        CST[n].name = CST[n].name.substring(7)
+                        newDom = domTree.window.document.createElement(CST[n].name)
+                        newDom.style.display = 'inline-block'
+                    }
                     let fatherId = getFatherNodeId(CST[n].id, CST[n].weight)
-                    newDom.setAttribute('morphes-id',CST[n].id);
+                    newDom.setAttribute(global.MORPHES_ID,CST[n].id);
                     let fatherNode = getNode(fatherId, domTree)
                     fatherNode.appendChild(newDom)
                 }
-                // // 填充属性
-                // if (CST[n].attr) {
-
-                // } else {
-
-                // }
                 transToHTML(CST[n], domTree)
-            } else if (CST[n].type == 'string') {
+            } else if (CST[n].type == global.TOKEN.STRING) {
                 let fatherId = getFatherNodeId(CST[n].id, CST[n].weight)
                 let fatherNode = getNode(fatherId, domTree)
                 let htmlOfDom = fatherNode.innerHTML
                 htmlOfDom += CST[n].content
                 fatherNode.innerHTML = htmlOfDom
-            } else if (CST[n].type == 'attr') {
+            } else if (CST[n].type == global.TOKEN.ATTR) {
                 let fatherId = getFatherNodeId(CST[n].id, CST[n].weight)
                 let fatherNode = getNode(fatherId, domTree)
                 fatherNode.setAttribute(CST[n].key, CST[n].value)
+            } else if (CST[n].type == global.TOKEN.SCRIPT) {
+                let fatherId = getFatherNodeId(CST[n].id, CST[n].weight)
+                let fatherNode = getNode(fatherId, domTree)
+                let htmlOfDom = fatherNode.innerHTML
+                htmlOfDom += removeBigBrackets(CST[n].script)
+                fatherNode.innerHTML = htmlOfDom
             }
         }
     }
@@ -272,7 +300,7 @@ function getFatherNodeId(nodeId, weight){
 function getNode (nodeId, domTree) {
     let allNode = domTree.window.document.getElementsByTagName('*')
     for (let i = 0; i < allNode.length; i++) {
-        if (allNode[i].getAttribute('morphes-id') == nodeId) {
+        if (allNode[i].getAttribute(global.MORPHES_ID) == nodeId) {
             return allNode[i]
         }
     }
@@ -286,6 +314,40 @@ function initGlobal () {
     global.nodeId = 0
     global.sourceArr = []
     global.weightTree = {}
+    global.tempToken = []
+}
+
+// 获得第一个非空字符
+function getFirstNonSpaceChar (arr) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] != ' ') {
+            return arr[i]
+        }
+    }
+    throw 'Error'
+}
+
+// 去掉Script的头尾大括号
+function removeBigBrackets(sc) {
+    return sc.substring(sc.indexOf('{') + 1, sc.lastIndexOf('}'))
+}
+
+// 检查Script的大括号格式
+function checkScriptBrackets (sc) {
+    let left = 0
+    let right = 0
+    for (let i = 0; i < sc.length; i++) {
+        if (sc[i] == '{') {
+            left++
+        }
+        if (sc[i] == '}') {
+            right++
+        }
+    }
+    if (left == right) {
+        return true
+    }
+    return false
 }
 
 module.exports = {

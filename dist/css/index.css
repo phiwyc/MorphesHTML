@@ -1,0 +1,89 @@
+.header{
+    position: fixed;
+    height: 81px;
+    line-height: 81px;
+    width: 100%;
+    z-index: 1;
+    background-color: #FFF;
+    top: 0;
+}
+.header .nav {
+    position: absolute;
+    top: 0;
+    right: 20px;
+}
+.header .real-header {
+    position: relative;
+    max-width: 1740px;
+    height: 81px;
+    margin: 0 auto;
+}
+.header .nav div {
+    margin: 0 20px;
+    font-size: 18px;
+}
+.header .logo {
+    position: absolute;
+    top: 20px;
+    margin-left: 20px;
+}
+.first {
+    position: relative;
+    margin-top: 81px;
+}
+.first .slogan {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #FFF;
+    left: 40px;
+}
+.first .slogan .big {
+    font-size: 48px;
+    letter-spacing: 10px;
+    line-height: 65px;
+}
+.first .slogan .small {
+    font-size: 24px;
+    line-height: 36px;
+}
+.second {
+    position: relative;
+    width: 100%;
+    padding-bottom: 62.5%;
+    background-color: #F2F2F5;
+}
+.second .phone-border {
+    position: absolute;
+    width: 23.61%;
+    padding-bottom: 48.47%;
+    background: #FFFFFF;
+    box-shadow: 12px 13px 24px 0 #DBE1E9, inset -2px -2px 3px 0 rgba(162,173,184,0.65), inset -8px -8px 9px 0 rgba(210,215,218,0.59);
+    border-radius: 40px;
+}
+.second .phone-border img {
+    position: absolute;
+    width: 88.23%;
+    top: 3%;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    border-radius: 40px;
+}
+.second .phone-left {
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    top: 7.6%;
+}
+.second .phone-right {
+    right: 10.97%;
+    top: 14.7%;
+}
+.second .left {
+    position: absolute;
+    left: 6.1%;
+}
+.second .left .left-title {
+    font-size: 33px;
+}
