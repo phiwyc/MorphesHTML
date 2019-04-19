@@ -1,7 +1,5 @@
 # MorphesHTML
-A new language for DOM
-
-### This project is still under development...
+A new grammer for HTML
 
 Don't like the grammer of HTML? You could try MorphesHTML...
 
@@ -29,3 +27,5 @@ div
 ```
 
 That's all. No more tags, only spaces and enters.
+
+MorphesHTML Code Extension is now available in VSCode Extension, just search MTML in VSCode Extension and you will see it.
