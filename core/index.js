@@ -237,15 +237,28 @@ function transToHTML (CST, domTree) {
         if ( typeof (CST[n]) == 'object' ) {
             // DOM节点
             if (CST[n].type == global.TOKEN.DOM) {
+                let tempClassStr = ''
+                // 判断类
+                if (CST[n].name.indexOf(':') >= 0) {
+                    let temp = CST[n].name.split(':')
+                    CST[n].name = temp[0]
+                    tempClassStr = temp[1]
+                }
                 // 判断权重，父级元素按照遍历顺序直接写入
                 if (CST[n].weight == 0) {
                     // 根元素会由JSDOM自动生成，做简单处理即可
                     // 根元素必须是head或body
                     if (CST[n].name == 'head') {
                         domTree.window.document.head.setAttribute(global.MORPHES_ID, CST[n].id)
+                        if (tempClassStr.length > 0) {
+                            domTree.window.document.head.setAttribute('class', tempClassStr)
+                        }
                     } 
                     if (CST[n].name == 'body') {
                         domTree.window.document.body.setAttribute(global.MORPHES_ID, CST[n].id)
+                        if (tempClassStr.length > 0) {
+                            domTree.window.document.body.setAttribute('class', tempClassStr)
+                        }
                     }
                 } else {
                     // 子元素写在父元素内部
@@ -258,7 +271,11 @@ function transToHTML (CST, domTree) {
                         newDom.style.display = 'inline-block'
                     }
                     let fatherId = getFatherNodeId(CST[n].id, CST[n].weight)
-                    newDom.setAttribute(global.MORPHES_ID,CST[n].id);
+                    newDom.setAttribute(global.MORPHES_ID,CST[n].id)
+                    // 处理简略的class写法
+                    if (tempClassStr.length > 0) {
+                        newDom.setAttribute('class', tempClassStr)
+                    }
                     let fatherNode = getNode(fatherId, domTree)
                     fatherNode.appendChild(newDom)
                 }

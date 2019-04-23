@@ -24,17 +24,18 @@ chokidar.watch('./src').on('change', (paths, stats) => {
         return
     }
     // 通过延时避免一些潜在的文件系统问题
-    setTimeout(() => {
-        global.isCompiling = true
-        // 每次编译时删除Dist
-        rimraf(path.resolve('./dist'), (err) => {
-            if (err) {console.log(err);return}
-            // 然后重新生成Dist
-            fs.mkdirSync(path.resolve('./dist'))
-            // 遍历文件
-            util.findFile(path.resolve(global.SRC_PATH))
-            // 开始编译
-            compiler.compiler(global.mtmlFileList)
-        })
-    }, 1000)
+    // FIXME: rimraf偶尔会报权限问题，需要调查原因
+    global.isCompiling = true
+    // 每次编译时删除Dist
+    rimraf(path.resolve('./dist'), (err) => {
+        if (err) {console.log(err);return}
+        // 然后重新生成Dist
+        fs.mkdirSync(path.resolve('./dist'))
+        // 遍历文件
+        util.findFile(path.resolve(global.SRC_PATH))
+        // 开始编译
+        compiler.compiler(global.mtmlFileList)
+    })
 })
+
+// TODO: 组件化
